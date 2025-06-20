@@ -1,0 +1,36 @@
+# =============================================================================
+# dynamic_scheduler.py – Kör AIKryptoBot3 i loop med dynamiska intervall
+# =============================================================================
+
+import time
+import datetime
+import os
+
+# Justera sökvägen om nödvändigt
+RUN_COMMAND = "python start_all.py"
+
+# Intervall i minuter baserat på timme
+def get_interval():
+    now = datetime.datetime.now().time()
+    hour = now.hour
+
+    if 8 <= hour < 22:
+        return 15  # Aktiv handelstid
+    elif 22 <= hour or hour < 2:
+        return 30  # Kväll/natt
+    else:
+        return 60  # Tidig morgon (02–08)
+
+while True:
+    now = datetime.datetime.now()
+    print(f"\n[START] Körning startad {now.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    try:
+        os.system(RUN_COMMAND)
+    except Exception as e:
+        print(f"[X] Fel under körning: {e}")
+
+    interval = get_interval()
+    next_run = datetime.datetime.now() + datetime.timedelta(minutes=interval)
+    print(f"[INFO] Nästa körning: {next_run.strftime('%H:%M')} (om {interval} min)")
+    time.sleep(interval * 60)

@@ -1,0 +1,1 @@
+MIN_BUY_SCORE=0.55

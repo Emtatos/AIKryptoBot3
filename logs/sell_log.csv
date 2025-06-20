@@ -1,0 +1,4 @@
+timestamp,symbol,amount,price,total_value,reason
+2025-05-31 15:00:06,BTC,0.0065385877,104051.2,680.35,manual_sell
+2025-05-31 15:45:02,BTC,0.0064876177,104185.0,675.91,manual_sell
+2025-06-13 21:40:50,ETH,0.210564014,2529.13,532.54,manual_sell

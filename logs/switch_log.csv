@@ -1,0 +1,2 @@
+timestamp,from,to,score_diff,sell_price,buy_price,outcome,return_%
+2025-05-31 22:09:39,ETH,BTC,1.23,2540.55,104200.0,success,0.68
