@@ -68,7 +68,16 @@ def adjust_switch_threshold():
 
     if evaluated >= 3:
         hitrate = positive / evaluated
-        new_threshold = round(DEFAULT + (0.5 - hitrate), 2)
+        
+        avg_return = 0
+        if evaluated > 0:
+            returns = [row.get("return_%", 0) for _, row in recent.iterrows() if row.get("outcome") in ["success", "fail"]]
+            if returns:
+                avg_return = sum(returns) / len(returns)
+        
+        hitrate_adjustment = (0.5 - hitrate) * 0.8
+        return_adjustment = (avg_return / 100) * 0.3
+        new_threshold = round(DEFAULT + hitrate_adjustment - return_adjustment, 2)
         new_threshold = max(MIN_THRESHOLD, min(MAX_THRESHOLD, new_threshold))
 
         with open(threshold_file, "w") as f:

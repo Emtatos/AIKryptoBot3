@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 import io
 from datetime import datetime
-from reporting.telegram import send_telegram, send_telegram_with_buttons
+from reporting.telegram import send_telegram
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
@@ -135,13 +135,49 @@ print(text)
 for line in debug_lines:
     print(line)
 
-buttons = []
 if buy_signal:
-    buttons.append((f"Köp {best_coin}", f"BUY_REQUEST_{best_coin}"))
-if portfolio:
-    buttons.append(("Sälj allt", "SELL_ALL_REQUEST"))
+    qty = broker.get_allocatable_amount(best_coin)
+    if qty > 0:
+        result = broker.place_market_order(best_coin, qty, side="buy")
+        if result and "error" in result and not result["error"]:
+            send_telegram(f"✅ AUTOMATISKT KÖP: {best_coin} - {qty:.6f} enheter")
+        else:
+            send_telegram(f"❌ Köp misslyckades för {best_coin}: {result}")
+    else:
+        send_telegram(f"⚠️ Otillräckligt saldo för att köpa {best_coin}")
 
-if buttons:
-    send_telegram_with_buttons(text, buttons)
-else:
-    send_telegram(text)
+for coin, qty in portfolio.items():
+    current_price = latest_prices.get(coin, 0)
+    current_score_row = top_df[top_df.symbol == coin]["score"]
+    current_score = current_score_row.values[0] if not current_score_row.empty else -99
+    
+    sl = stoploss_dict.get(coin, {})
+    stop_price = sl.get("stop_price")
+    
+    should_sell = False
+    sell_reason = ""
+    
+    if stop_price and current_price <= stop_price:
+        should_sell = True
+        sell_reason = f"Stop-loss utlöst ({current_price:.2f} <= {stop_price:.2f})"
+    elif coin != best_coin and best_score - current_score >= SWITCH_THRESHOLD:
+        should_sell = True
+        sell_reason = f"Växlar till {best_coin} (skillnad: {best_score - current_score:.2f})"
+    elif TREND_CONFIDENCE >= 0.5:
+        should_sell = True
+        sell_reason = f"Trendförsäljning (förtroende {TREND_CONFIDENCE:.2f})"
+    
+    if should_sell:
+        result = broker.place_market_order(coin, qty, side="sell")
+        if result and "error" in result and not result["error"]:
+            send_telegram(f"✅ AUTOMATISK FÖRSÄLJNING: {coin} - {qty:.6f} enheter\nAnledning: {sell_reason}")
+            if "Växlar till" in sell_reason:
+                new_qty = broker.get_allocatable_amount(best_coin)
+                if new_qty > 0:
+                    buy_result = broker.place_market_order(best_coin, new_qty, side="buy")
+                    if buy_result and "error" in buy_result and not buy_result["error"]:
+                        send_telegram(f"✅ AUTOMATISKT KÖP: {best_coin} - {new_qty:.6f} enheter")
+        else:
+            send_telegram(f"❌ Försäljning misslyckades för {coin}: {result}")
+
+send_telegram(text)

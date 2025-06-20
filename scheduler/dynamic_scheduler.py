@@ -21,16 +21,23 @@ def get_interval():
     else:
         return 60  # Tidig morgon (02–08)
 
+print("[SCHEDULER] AIKryptoBot3 Autonomous Scheduler startad")
+print("[SCHEDULER] Systemet kommer att köra automatiskt 24/7")
+
 while True:
     now = datetime.datetime.now()
     print(f"\n[START] Körning startad {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
     try:
-        os.system(RUN_COMMAND)
+        result = os.system(RUN_COMMAND)
+        if result != 0:
+            print(f"[WARNING] Körning avslutades med kod {result}")
     except Exception as e:
         print(f"[X] Fel under körning: {e}")
+        print("[RECOVERY] Fortsätter med nästa körning...")
 
     interval = get_interval()
     next_run = datetime.datetime.now() + datetime.timedelta(minutes=interval)
     print(f"[INFO] Nästa körning: {next_run.strftime('%H:%M')} (om {interval} min)")
+    print("[AUTONOMOUS] Systemet kör automatiskt utan manuell intervention")
     time.sleep(interval * 60)

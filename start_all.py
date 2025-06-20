@@ -25,8 +25,15 @@ from core.adaptive_buy_score import adjust_min_buy_score
 from core.trend_shift_detector import detect_trend_shifts
 from reporting.runtime_info import generate_runtime_info
 from reporting.telegram import send_telegram
+from core.log_rotator import rotate_all_logs
 
 print("\n=== AIKryptoBot3 – Startar full körning ===")
+
+try:
+    rotate_all_logs()
+except Exception as e:
+    print("[X] Fel vid loggrensning:")
+    traceback.print_exc()
 
 # Skicka datum/tid först
 try:
