@@ -24,12 +24,11 @@ broker = KrakenBroker()
 
 
 def handle_callback(callback_data):
-    if callback_data == "SELL_ALL_REQUEST":
-        buttons = [("✅ Bekräfta", "SELL_ALL_CONFIRM"), ("❌ Avbryt", "SELL_ALL_CANCEL")]
-        send_telegram_with_buttons("⚠️ Bekräfta att du vill sälja alla innehav:", buttons)
+    if callback_data == "EMERGENCY_STOP":
+        send_telegram("🚨 NÖDSTOPP AKTIVERAT - Systemet pausas")
         return
-
-    elif callback_data == "SELL_ALL_CONFIRM":
+    
+    elif callback_data == "SELL_ALL_EMERGENCY":
         portfolio = broker.get_portfolio()
         prices = {sym: broker.get_price(sym) for sym in portfolio.keys()}
 
@@ -70,39 +69,9 @@ def handle_callback(callback_data):
         send_telegram("❌ Försäljning avbruten.")
         send_telegram("🔒 Försäljningsval har registrerats. Knappar inaktiverade.")
 
-    elif callback_data.startswith("BUY_REQUEST_"):
-        coin = callback_data.replace("BUY_REQUEST_", "")
-        buttons = [("✅ Bekräfta köp", f"BUY_CONFIRM_{coin}"), ("❌ Avbryt", "BUY_CANCEL")]
-        send_telegram_with_buttons(f"⚠️ Bekräfta att du vill köpa {coin}:", buttons)
-
-    elif callback_data.startswith("BUY_CONFIRM_"):
-        coin = callback_data.replace("BUY_CONFIRM_", "")
-        qty = broker.get_allocatable_amount(coin)
-        price = broker.get_price(coin)
-        if qty > 0 and price:
-            res = broker.place_market_order(coin, qty, side="buy")
-            if res and "error" in res and not res["error"]:
-                total = round(qty * price, 2)
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                df_log = pd.DataFrame([{ 
-                    "timestamp": timestamp,
-                    "symbol": coin,
-                    "amount": qty,
-                    "price": price,
-                    "total_value": total,
-                    "reason": "manual_buy"
-                }])
-                header = not os.path.exists(BUY_LOG_PATH)
-                df_log.to_csv(BUY_LOG_PATH, mode="a", header=header, index=False)
-                send_telegram(f"✅ Köpt {coin}: {qty:.6f} för totalt ${total:.2f}")
-            else:
-                send_telegram(f"[X] Kunde inte köpa {coin}: {res}")
-        else:
-            send_telegram(f"⚠️ Kan inte köpa {coin} – ogiltigt belopp eller pris")
-
-    elif callback_data == "BUY_CANCEL":
-        send_telegram("❌ Köp avbruten.")
-        send_telegram("🔒 Köpval har registrerats. Knappar inaktiverade.")
+    else:
+        send_telegram("⚠️ Systemet kör nu autonomt. Manuella handelskommandon är inaktiverade.")
+        send_telegram("🤖 För nödstopp, kontakta systemadministratören.")
 
 
 # === Direkt testbar ===
