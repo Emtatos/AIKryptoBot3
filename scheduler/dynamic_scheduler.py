@@ -7,7 +7,7 @@ import datetime
 import os
 
 # Justera sökvägen om nödvändigt
-RUN_COMMAND = "python start_all.py"
+RUN_COMMAND = "python ../start_all.py"
 
 # Intervall i minuter baserat på timme
 def get_interval():
