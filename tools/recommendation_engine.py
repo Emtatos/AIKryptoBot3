@@ -140,11 +140,12 @@ if buy_signal:
     if qty > 0:
         result = broker.place_market_order(best_coin, qty, side="buy")
         if result and "error" in result and not result["error"]:
-            send_telegram(f"✅ AUTOMATISKT KÖP: {best_coin} - {qty:.6f} enheter")
+            price = broker.get_price(best_coin)
+            send_telegram(f"✅ *AUTOMATISKT KÖP*: `{best_coin}`\n💰 Antal: {qty:.6f} enheter\n📈 Pris: ${price:.2f}")
         else:
-            send_telegram(f"❌ Köp misslyckades för {best_coin}: {result}")
+            send_telegram(f"❌ *Köp misslyckades* för `{best_coin}`:\n```{result}```")
     else:
-        send_telegram(f"⚠️ Otillräckligt saldo för att köpa {best_coin}")
+        send_telegram(f"⚠️ *Otillräckligt saldo* för att köpa `{best_coin}`")
 
 for coin, qty in portfolio.items():
     current_price = latest_prices.get(coin, 0)
@@ -170,14 +171,16 @@ for coin, qty in portfolio.items():
     if should_sell:
         result = broker.place_market_order(coin, qty, side="sell")
         if result and "error" in result and not result["error"]:
-            send_telegram(f"✅ AUTOMATISK FÖRSÄLJNING: {coin} - {qty:.6f} enheter\nAnledning: {sell_reason}")
+            price = broker.get_price(coin)
+            send_telegram(f"✅ *AUTOMATISK FÖRSÄLJNING*: `{coin}`\n💰 Antal: {qty:.6f} enheter\n📈 Pris: ${price:.2f}\n📝 Anledning: {sell_reason}")
             if "Växlar till" in sell_reason:
                 new_qty = broker.get_allocatable_amount(best_coin)
                 if new_qty > 0:
                     buy_result = broker.place_market_order(best_coin, new_qty, side="buy")
                     if buy_result and "error" in buy_result and not buy_result["error"]:
-                        send_telegram(f"✅ AUTOMATISKT KÖP: {best_coin} - {new_qty:.6f} enheter")
+                        new_price = broker.get_price(best_coin)
+                        send_telegram(f"✅ *AUTOMATISKT KÖP*: `{best_coin}`\n💰 Antal: {new_qty:.6f} enheter\n📈 Pris: ${new_price:.2f}")
         else:
-            send_telegram(f"❌ Försäljning misslyckades för {coin}: {result}")
+            send_telegram(f"❌ *Försäljning misslyckades* för `{coin}`:\n```{result}```")
 
 send_telegram(text)

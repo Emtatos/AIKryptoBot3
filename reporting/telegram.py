@@ -20,7 +20,7 @@ def send_telegram(message):
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
-        # "parse_mode": "Markdown"  # Avstängd tillfälligt pga fel vid specialtecken
+        "parse_mode": "Markdown"
     }
     try:
         response = requests.post(url, json=payload, timeout=10)
@@ -39,7 +39,7 @@ def send_telegram_with_buttons(message, buttons):
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": message,
-        # "parse_mode": "Markdown",
+        "parse_mode": "Markdown",
         "reply_markup": keyboard
     }
     try:

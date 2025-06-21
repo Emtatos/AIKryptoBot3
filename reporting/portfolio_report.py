@@ -38,8 +38,8 @@ def send_portfolio_report():
         lines.append(f"{symbol}: {qty:.6f} × ${price:.2f} = ${value:.2f}")
 
     if total_value > 0:
-        lines.append("--------------------------")
-        lines.append(f"Totalt värde: ${total_value:.2f}")
+        lines.append("-" * 26)
+        lines.append(f"💰 Totalt värde: ${total_value:.2f}")
         lines.append("```")
         send_telegram("\n".join(lines))
     else:
