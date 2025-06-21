@@ -14,6 +14,9 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from core.portfolio_manager import PortfolioManager
+from core.technical_indicators import calculate_volatility
+
 from core.broker_kraken import KrakenBroker
 from config.coin_config import ACTIVE_COINS
 
@@ -135,52 +138,51 @@ print(text)
 for line in debug_lines:
     print(line)
 
-if buy_signal:
-    qty = broker.get_allocatable_amount(best_coin)
-    if qty > 0:
-        result = broker.place_market_order(best_coin, qty, side="buy")
-        if result and "error" in result and not result["error"]:
-            price = broker.get_price(best_coin)
-            send_telegram(f"✅ *AUTOMATISKT KÖP*: `{best_coin}`\n💰 Antal: {qty:.6f} enheter\n📈 Pris: ${price:.2f}")
-        else:
-            send_telegram(f"❌ *Köp misslyckades* för `{best_coin}`:\n```{result}```")
-    else:
-        send_telegram(f"⚠️ *Otillräckligt saldo* för att köpa `{best_coin}`")
+portfolio_manager = PortfolioManager()
+recommended_trades = portfolio_manager.get_recommended_trades(top_df)
 
-for coin, qty in portfolio.items():
-    current_price = latest_prices.get(coin, 0)
-    current_score_row = top_df[top_df.symbol == coin]["score"]
-    current_score = current_score_row.values[0] if not current_score_row.empty else -99
-    
-    sl = stoploss_dict.get(coin, {})
-    stop_price = sl.get("stop_price")
-    
-    should_sell = False
-    sell_reason = ""
-    
-    if stop_price and current_price <= stop_price:
-        should_sell = True
-        sell_reason = f"Stop-loss utlöst ({current_price:.2f} <= {stop_price:.2f})"
-    elif coin != best_coin and best_score - current_score >= SWITCH_THRESHOLD:
-        should_sell = True
-        sell_reason = f"Växlar till {best_coin} (skillnad: {best_score - current_score:.2f})"
-    elif TREND_CONFIDENCE >= 0.5:
-        should_sell = True
-        sell_reason = f"Trendförsäljning (förtroende {TREND_CONFIDENCE:.2f})"
-    
-    if should_sell:
-        result = broker.place_market_order(coin, qty, side="sell")
-        if result and "error" in result and not result["error"]:
-            price = broker.get_price(coin)
-            send_telegram(f"✅ *AUTOMATISK FÖRSÄLJNING*: `{coin}`\n💰 Antal: {qty:.6f} enheter\n📈 Pris: ${price:.2f}\n📝 Anledning: {sell_reason}")
-            if "Växlar till" in sell_reason:
-                new_qty = broker.get_allocatable_amount(best_coin)
-                if new_qty > 0:
-                    buy_result = broker.place_market_order(best_coin, new_qty, side="buy")
-                    if buy_result and "error" in buy_result and not buy_result["error"]:
-                        new_price = broker.get_price(best_coin)
-                        send_telegram(f"✅ *AUTOMATISKT KÖP*: `{best_coin}`\n💰 Antal: {new_qty:.6f} enheter\n📈 Pris: ${new_price:.2f}")
-        else:
-            send_telegram(f"❌ *Försäljning misslyckades* för `{coin}`:\n```{result}```")
+if recommended_trades:
+    for trade in recommended_trades:
+        action = trade["action"]
+        symbol = trade["symbol"]
+        quantity = trade["quantity"]
+        reason = trade["reason"]
+        
+        if action == "BUY":
+            result = broker.place_market_order(symbol, quantity, side="buy")
+            if result and "error" in result and not result["error"]:
+                price = broker.get_price(symbol)
+                value = quantity * price
+                send_telegram(f"✅ *AUTOMATISKT KÖP*: `{symbol}`\n💰 Antal: {quantity:.6f}\n📈 Pris: ${price:.2f}\n💵 Värde: ${value:.2f}\n📝 Anledning: {reason}")
+            else:
+                send_telegram(f"❌ *Köp misslyckades* för `{symbol}`: {reason}\n```{result}```")
+                
+        elif action == "SELL":
+            result = broker.place_market_order(symbol, quantity, side="sell")
+            if result and "error" in result and not result["error"]:
+                price = broker.get_price(symbol)
+                value = quantity * price
+                send_telegram(f"✅ *AUTOMATISK FÖRSÄLJNING*: `{symbol}`\n💰 Antal: {quantity:.6f}\n📈 Pris: ${price:.2f}\n💵 Värde: ${value:.2f}\n📝 Anledning: {reason}")
+            else:
+                send_telegram(f"❌ *Försäljning misslyckades* för `{symbol}`: {reason}\n```{result}```")
 
-send_telegram(text)
+enhanced_text = f"""
+📊 *AI Crypto Analys - Förbättrad Version*
+
+🎯 **Topp 3 Rekommendationer:**
+{chr(10).join([f"{i+1}. {row.symbol}: {row.score:.2f} (RSI: {getattr(row, 'rsi', 50):.1f}, Vol: {getattr(row, 'volatility', 0.1):.3f})" for i, row in top_df.head(3).iterrows()])}
+
+📈 **Teknisk Analys:**
+• RSI-signaler: {len([r for _, r in top_df.iterrows() if getattr(r, 'rsi', 50) < 30])} köp, {len([r for _, r in top_df.iterrows() if getattr(r, 'rsi', 50) > 70])} sälj
+• MACD-signaler: {len([r for _, r in top_df.iterrows() if getattr(r, 'macd_signal', 'SELL') == "BUY"])} köp
+• Bollinger Bands: {len([r for _, r in top_df.iterrows() if getattr(r, 'bb_position', 'MIDDLE') == "BELOW"])} under nedre band
+
+⚖️ **Riskhantering:**
+• Portföljdiversifiering: {len(recommended_trades)} positioner
+• Genomsnittlig volatilitet: {top_df.get('volatility', pd.Series([0.1])).mean():.3f}
+• Kapitalallokering: Dynamisk baserat på risk
+
+🤖 **Autonomt läge**: Systemet handlar automatiskt baserat på teknisk analys
+"""
+
+send_telegram(enhanced_text)
