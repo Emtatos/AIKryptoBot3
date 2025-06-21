@@ -7,7 +7,7 @@ import datetime
 import os
 
 # Justera sökvägen om nödvändigt
-RUN_COMMAND = "python start_all.py"
+RUN_COMMAND = "python ../start_all.py"
 
 # Intervall i minuter baserat på timme
 def get_interval():
@@ -32,6 +32,20 @@ while True:
         result = os.system(RUN_COMMAND)
         if result != 0:
             print(f"[WARNING] Körning avslutades med kod {result}")
+            
+        if now.hour % 6 == 0 and now.minute < 30:
+            try:
+                import sys
+                import os
+                project_root = os.path.dirname(os.path.abspath(__file__))
+                parent_dir = os.path.dirname(project_root)
+                sys.path.insert(0, parent_dir)
+                from reporting.status_report import send_status_report
+                send_status_report()
+                print("[OK] Status rapport skickad")
+            except Exception as e:
+                print(f"[WARNING] Status rapport misslyckades: {e}")
+                
     except Exception as e:
         print(f"[X] Fel under körning: {e}")
         print("[RECOVERY] Fortsätter med nästa körning...")

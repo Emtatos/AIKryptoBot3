@@ -26,7 +26,7 @@ broker = KrakenBroker()
 def handle_callback(callback_data):
     if callback_data == "EMERGENCY_STOP":
         send_telegram("🚨 NÖDSTOPP AKTIVERAT - Systemet pausas")
-        return
+        return "Nödstopp aktiverat"
     
     elif callback_data == "SELL_ALL_EMERGENCY":
         portfolio = broker.get_portfolio()
@@ -64,14 +64,17 @@ def handle_callback(callback_data):
 
         send_telegram("\n".join(lines))
         send_telegram("🔒 Försäljningsval har registrerats. Knappar inaktiverade.")
+        return "Nödförsäljning genomförd"
 
     elif callback_data == "SELL_ALL_CANCEL":
         send_telegram("❌ Försäljning avbruten.")
         send_telegram("🔒 Försäljningsval har registrerats. Knappar inaktiverade.")
+        return "Försäljning avbruten"
 
     else:
         send_telegram("⚠️ Systemet kör nu autonomt. Manuella handelskommandon är inaktiverade.")
         send_telegram("🤖 För nödstopp, kontakta systemadministratören.")
+        return "Autonomt läge aktivt"
 
 
 # === Direkt testbar ===

@@ -32,7 +32,7 @@ def adjust_min_buy_score():
         print("[INFO] För få BUY-träffar för att justera.")
         return
 
-    recent = df.head(10)
+    recent = df.head(20)
     hitrate = recent["hit_rate_%"].mean() / 100
 
     profit_factor = 1.0
@@ -40,9 +40,16 @@ def adjust_min_buy_score():
         avg_profit = recent["avg_profit_%"].mean()
         profit_factor = 1 + (avg_profit / 100) * 0.5
 
+    volatility_adjustment = 0
+    if "volatility" in recent.columns:
+        avg_volatility = recent["volatility"].mean()
+        volatility_adjustment = avg_volatility * 0.2
+
     base_adjustment = (0.5 - hitrate) * 0.4
     profit_adjustment = (profit_factor - 1) * 0.3
-    new_score = DEFAULT + base_adjustment + profit_adjustment
+    risk_adjustment = volatility_adjustment * 0.1
+
+    new_score = DEFAULT + base_adjustment + profit_adjustment + risk_adjustment
     new_score = round(max(MIN_SCORE, min(MAX_SCORE, new_score)), 2)
 
     # Läs in befintlig fil, uppdatera rad eller lägg till
